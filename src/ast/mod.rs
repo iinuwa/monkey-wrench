@@ -1,6 +1,6 @@
 use crate::token::Token;
 
-trait Node {
+pub trait Node {
     fn literal_value(&self) -> String;
 }
 
@@ -8,7 +8,7 @@ pub trait Statement: Node {
     fn statement(&self);
 }
 
-trait Expression {
+pub trait Expression {
     fn expression(&self);
 }
 
@@ -16,7 +16,7 @@ pub struct Program<'a, T>
 where
     T: Statement + Node,
 {
-    statements: Vec<&'a T>,
+    pub statements: Vec<&'a T>,
 }
 
 impl<T> Node for Program<'_, T>
@@ -31,16 +31,19 @@ where
     }
 }
 
-pub struct LetStatement<'a> {
+pub struct LetStatement<'a, T>
+where
+    T: Expression + Sized,
+{
     token: Token,
     name: &'a Identifier,
-    value: dyn Expression,
+    value: T,
 }
 
-impl<'a> Statement for LetStatement<'a> {
+impl<'a, T: Expression> Statement for LetStatement<'a, T> {
     fn statement(&self) {}
 }
-impl<'a> Node for LetStatement<'a> {
+impl<'a, T: Expression> Node for LetStatement<'a, T> {
     fn literal_value(&self) -> String {
         self.token.token_value()
     }
