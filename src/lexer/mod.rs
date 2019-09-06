@@ -31,7 +31,7 @@ impl<'a> Lexer<'a> {
         self.next_position += 1;
     }
 
-    fn next_token(&mut self) -> Token {
+    pub fn next_token(&mut self) -> &Token {
         //println!("{}", self.current_byte as char);
         self.skip_whitespace();
 
@@ -58,23 +58,23 @@ impl<'a> Lexer<'a> {
             ),
             b'<' => Token::Less("<".to_string()),
             b'>' => Token::Greater(">".to_string()),
-            0 => Token::EOF("".to_string()),
+            0 => Token::EOF,
             x => {
                 if Token::is_valid_identifier_char(x as char) {
-                    return self.read_identifier();
+                    return &self.read_identifier();
                 } else if x.is_ascii_digit() {
-                    return self.read_integer();
+                    return &self.read_integer();
                 } else {
                     Token::Illegal(x.to_string())
                 }
             }
         };
         self.read_char();
-        token
+        &token
     }
 
-    pub fn tokenize(&mut self) -> Vec<Token> {
-        let mut tokens: Vec<Token> = Vec::new();
+    pub fn tokenize(&mut self) -> Vec<&Token> {
+        let mut tokens: Vec<&Token> = Vec::new();
         while self.current_position <= self.source.len() {
             tokens.push(self.next_token());
         }
