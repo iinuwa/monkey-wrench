@@ -1,10 +1,11 @@
 mod tests;
 
-use crate::ast::{Program, Statement};
+use crate::ast::Program;
 use crate::lexer::Lexer;
 use crate::token::Token;
 use std::error::Error;
 use std::fmt;
+#[allow(dead_code)]
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
     current_token: Token,
@@ -12,6 +13,7 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
+    #[allow(dead_code)]
     pub fn new(lexer: Lexer<'a>) -> Self {
         let mut parser = Parser {
             lexer: lexer,
@@ -28,16 +30,14 @@ impl<'a> Parser<'a> {
         self.peek_token = self.lexer.next_token();
     }
 
-    pub fn parse_program<T>(&mut self) -> Result<Program<'a, T>, ParserError>
-    where
-        T: Statement + Sized,
-    {
+    #[allow(dead_code)]
+    pub fn parse_program(&mut self) -> Result<Program, ParserError> {
         unimplemented!()
     }
 }
 
 #[derive(Debug)]
-struct ParserError;
+pub struct ParserError;
 
 impl Error for ParserError {}
 

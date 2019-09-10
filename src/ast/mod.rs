@@ -8,21 +8,15 @@ pub trait Statement: Node {
     fn statement(&self);
 }
 
-pub trait Expression {
+pub trait Expression: Node {
     fn expression(&self);
 }
 
-pub struct Program<'a, T>
-where
-    T: Statement + Node,
-{
-    pub statements: Vec<&'a T>,
+pub struct Program {
+    pub statements: Vec<Box<dyn Statement>>,
 }
 
-impl<T> Node for Program<'_, T>
-where
-    T: Statement + Node,
-{
+impl Node for Program {
     fn literal_value(&self) -> String {
         if !self.statements.is_empty() {
             return self.statements[0].literal_value();
@@ -31,19 +25,17 @@ where
     }
 }
 
-pub struct LetStatement<'a, T>
-where
-    T: Expression + Sized,
-{
+pub struct LetStatement {
     token: Token,
-    name: &'a Identifier,
-    value: T,
+    name: Identifier,
+    value: Box<dyn Expression>,
 }
 
-impl<'a, T: Expression> Statement for LetStatement<'a, T> {
+impl Statement for LetStatement {
     fn statement(&self) {}
 }
-impl<'a, T: Expression> Node for LetStatement<'a, T> {
+
+impl Node for LetStatement {
     fn literal_value(&self) -> String {
         self.token.token_value()
     }
