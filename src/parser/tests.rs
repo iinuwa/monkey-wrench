@@ -1,9 +1,9 @@
 #[cfg(test)]
-use crate::ast::{Node, Program, Statement};
+use crate::ast::{Expression, Node, Statement};
 #[cfg(test)]
 use crate::lexer::Lexer;
 #[cfg(test)]
-use crate::parser::{Parser, ParserError};
+use crate::parser::Parser;
 
 #[test]
 fn test_let_statements() {
@@ -17,7 +17,7 @@ fn test_let_statements() {
     let mut parser = Parser::new(lexer);
     let parse_result = parser.parse_program();
     assert!(parse_result.is_ok());
-    println!("{:?}", parse_result);
+    //println!("{:?}", parse_result);
     if let Ok(program) = parse_result {
         assert!(
             program.statements.len() == 3,
@@ -35,7 +35,10 @@ fn test_let_statements() {
 fn test_let_statement(statement: &Statement, name: String) {
     assert_eq!("let".to_string(), statement.literal_value());
     match statement {
-        Statement::Let(_, identifier, _) => assert_eq!(name, identifier.token.token_value()),
+        Statement::Let(_, identifier, _) => match identifier {
+            Expression::Identifier(token) => assert_eq!(name, token.token_value()),
+            _ => panic!("Invalid token"),
+        },
     };
-    assert_eq!(name, statement.literal_value());
+    //assert_eq!(name, statement.literal_value());
 }

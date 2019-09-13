@@ -6,7 +6,7 @@ pub trait Node {
 
 #[derive(Debug)]
 pub enum Statement {
-    Let(Token, Expression, Box<dyn Expression>),
+    Let(Token, Expression, Expression),
 }
 
 impl Node for Statement {
@@ -14,18 +14,22 @@ impl Node for Statement {
         match self {
             Statement::Let(token, _, _) => token.token_value(),
         }
-
     }
 }
 
+#[derive(Debug)]
 pub enum Expression {
     Identifier(Token),
+    r#String(String),
+    Unit,
 }
 
 impl Node for Expression {
     fn literal_value(&self) -> String {
         match self {
             Expression::Identifier(token) => token.token_value(),
+            Expression::String(string) => string.to_string(),
+            Expression::Unit => "".to_string(),
         }
     }
 }
@@ -37,9 +41,7 @@ pub struct Program {
 
 impl Program {
     pub fn new() -> Self {
-        Program {
-            statements: vec![],
-        }
+        Program { statements: vec![] }
     }
 }
 
