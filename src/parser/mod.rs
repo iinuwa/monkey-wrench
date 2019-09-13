@@ -1,6 +1,6 @@
 mod tests;
 
-use crate::ast::Program;
+use crate::ast::{Program, Statement};
 use crate::lexer::Lexer;
 use crate::token::Token;
 use std::error::Error;
@@ -32,7 +32,27 @@ impl<'a> Parser<'a> {
 
     #[allow(dead_code)]
     pub fn parse_program(&mut self) -> Result<Program, ParserError> {
-        unimplemented!()
+        let mut program = Program::new();
+        while {
+            if let Token::EOF = self.current_token {
+                true
+            } else {
+                false
+            }
+        } {
+            if let Ok(statement) = self.parse_statement() {
+                program.statements.push(statement);
+                self.next_token();
+            }
+            else {
+                return Err(ParserError);
+            }
+        }
+        Ok(program)
+    }
+
+    pub fn parse_statement(&mut self) -> Result<Statement, ParserError> {
+        unimplemented!();
     }
 }
 

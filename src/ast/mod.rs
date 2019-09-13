@@ -4,16 +4,43 @@ pub trait Node {
     fn literal_value(&self) -> String;
 }
 
-pub trait Statement: Node {
-    fn statement(&self);
+#[derive(Debug)]
+pub enum Statement {
+    Let(Token, Expression, Box<dyn Expression>),
 }
 
-pub trait Expression: Node {
-    fn expression(&self);
+impl Node for Statement {
+    fn literal_value(&self) -> String {
+        match self {
+            Statement::Let(token, _, _) => token.token_value(),
+        }
+
+    }
 }
 
+pub enum Expression {
+    Identifier(Token),
+}
+
+impl Node for Expression {
+    fn literal_value(&self) -> String {
+        match self {
+            Expression::Identifier(token) => token.token_value(),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Program {
-    pub statements: Vec<Box<dyn Statement>>,
+    pub statements: Vec<Statement>,
+}
+
+impl Program {
+    pub fn new() -> Self {
+        Program {
+            statements: vec![],
+        }
+    }
 }
 
 impl Node for Program {
@@ -25,6 +52,7 @@ impl Node for Program {
     }
 }
 
+/*
 pub struct LetStatement {
     token: Token,
     name: Identifier,
@@ -41,8 +69,9 @@ impl Node for LetStatement {
     }
 }
 
+#[derive(Debug)]
 pub struct Identifier {
-    token: Token,
+    pub token: Token,
 }
 
 impl Node for Identifier {
@@ -53,3 +82,4 @@ impl Node for Identifier {
 impl Expression for Identifier {
     fn expression(&self) {}
 }
+*/

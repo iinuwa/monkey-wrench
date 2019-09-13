@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::ast::{LetStatement, Program, Statement};
+use crate::ast::{Node, Program, Statement};
 #[cfg(test)]
 use crate::lexer::Lexer;
 #[cfg(test)]
@@ -15,8 +15,9 @@ fn test_let_statements() {
 
     let lexer = Lexer::new(input.as_bytes());
     let mut parser = Parser::new(lexer);
-    let parse_result: Result<Program, ParserError> = parser.parse_program();
+    let parse_result = parser.parse_program();
     assert!(parse_result.is_ok());
+    println!("{:?}", parse_result);
     if let Ok(program) = parse_result {
         assert!(
             program.statements.len() == 3,
@@ -31,10 +32,10 @@ fn test_let_statements() {
 }
 
 #[cfg(test)]
-fn test_let_statement(statement: &Box<dyn Statement>, name: String) {
+fn test_let_statement(statement: &Statement, name: String) {
     assert_eq!("let".to_string(), statement.literal_value());
-
-    //let let_statement: LetStatement = *statement;
-    //assert_eq!(name, statement.name.literal_value());
+    match statement {
+        Statement::Let(_, identifier, _) => assert_eq!(name, identifier.token.token_value()),
+    };
     assert_eq!(name, statement.literal_value());
 }
