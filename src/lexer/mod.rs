@@ -12,7 +12,7 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     pub fn new(bytes: &'a [u8]) -> Self {
         let mut lexer = Lexer {
-            bytes: bytes,
+            bytes,
             current_position: 0,
             next_position: 0,
             current_byte: 0,

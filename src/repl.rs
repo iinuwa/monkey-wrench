@@ -12,7 +12,7 @@ impl Repl {
             io::stdin()
                 .read_line(&mut command)
                 .expect("failed to read line.");
-            if command == String::from("exit()\n") {
+            if command == "exit()\n" {
                 break;
             }
             let mut lexer = Lexer::new(command.as_bytes());
