@@ -41,8 +41,6 @@ impl<'a> Parser<'a> {
             }
         } {
             if let Ok(statement) = self.parse_statement() {
-                // println!("parsed a statement successfully!");
-                // println!("{:?}", statement);
                 program.statements.push(statement);
                 self.next_token();
             } else {
@@ -53,8 +51,6 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_statement(&mut self) -> Result<Statement, ParserError> {
-        // println!("trying to parse a statement.");
-        // println!("{:?}", self.current_token);
         match self.current_token {
             Token::Let => self.parse_let_statement(),
             _ => Err(ParserError(format!(
@@ -65,44 +61,54 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_let_statement(&mut self) -> Result<Statement, ParserError> {
-        self.next_token();
         let identifier_expression: Expression;
-        if let Token::Identifier(identifier) = &self.current_token {
+        if let Token::Identifier(identifier) = &self.peek_token {
             identifier_expression =
                 Expression::Identifier(Token::Identifier(identifier.to_string()));
-            self.next_token();
-            if let Token::Assign = self.current_token {
-                self.next_token();
-                if let Ok(value) = self.parse_expression() {
-                    self.next_token();
-
-                    // println!("Is this a semicolon? {:?}", self.current_token);
-                    if let Token::Semicolon = self.current_token {
-                        Ok(Statement::Let(Token::Let, identifier_expression, value))
-                    } else {
-                        Err(ParserError(format!(
-                            "Expected \"{}\" here.",
-                            Token::Semicolon.token_value()
-                        )))
-                    }
-                } else {
-                    Err(ParserError(String::from(
-                        "Could not parse let statement value.",
-                    )))
-                }
-            } else {
-                Err(ParserError(format!(
-                    "Expected \"{}\" here.",
-                    Token::Assign.token_value()
-                )))
-            }
         } else {
-            Err(ParserError(String::from("Invalid identifier specified.")))
+            return Err(ParserError(String::from("Expected identifier after `let`")));
+        }
+
+        self.next_token();
+
+        if !self.check_next_token(Token::Assign) {
+            return Err(ParserError(format!(
+                "Expected \"{}\" here.",
+                Token::Assign.token_value()
+            )));
+        }
+
+        self.next_token();
+
+        if let Ok(value) = self.parse_expression() {
+            Ok(Statement::Let(Token::Let, identifier_expression, value))
+        } else {
+            Err(ParserError(String::from(
+                "Could not parse let statement value.",
+            )))
         }
     }
 
     fn parse_expression(&mut self) -> Result<Expression, ParserError> {
+        while !self.check_current_token(Token::Semicolon) {
+            self.next_token();
+
+            if let Token::EOF = self.current_token {
+                return Err(ParserError(format!(
+                    "Expected \"{}\" here.",
+                    Token::Semicolon.token_value()
+                )));
+            }
+        }
         Ok(Expression::Unit)
+    }
+
+    fn check_current_token(&self, token: Token) -> bool {
+        self.current_token == token
+    }
+
+    fn check_next_token(&self, token: Token) -> bool {
+        token == self.peek_token
     }
 }
 
