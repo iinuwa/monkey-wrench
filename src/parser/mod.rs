@@ -10,6 +10,7 @@ pub struct Parser<'a> {
     lexer: Lexer<'a>,
     current_token: Token,
     peek_token: Token,
+    errors: Vec<String>,
 }
 
 impl<'a> Parser<'a> {
@@ -19,6 +20,7 @@ impl<'a> Parser<'a> {
             lexer,
             current_token: Token::EOF,
             peek_token: Token::EOF,
+            errors: Vec::new(),
         };
         parser.next_token();
         parser.next_token();
@@ -40,19 +42,23 @@ impl<'a> Parser<'a> {
                 true
             }
         } {
-            if let Ok(statement) = self.parse_statement() {
-                program.statements.push(statement);
-                self.next_token();
-            } else {
-                return Err(ParserError(String::from("Error parsing statement.")));
+            match self.parse_statement() {
+                Ok(statement) => program.statements.push(statement),
+                Err(err) => self.errors.push(err.0.to_string()),
             }
+            self.next_token();
         }
-        Ok(program)
+        if self.errors.is_empty() {
+            Ok(program)
+        } else {
+            Err(ParserError("Error(s) parsing program.".to_string()))
+        }
     }
 
     fn parse_statement(&mut self) -> Result<Statement, ParserError> {
         match self.current_token {
             Token::Let => self.parse_let_statement(),
+            Token::Return => self.parse_return_statement(),
             _ => Err(ParserError(format!(
                 "Unknown token encountered: {:?}",
                 self.current_token
@@ -63,22 +69,16 @@ impl<'a> Parser<'a> {
     fn parse_let_statement(&mut self) -> Result<Statement, ParserError> {
         let identifier_expression: Expression;
         if let Token::Identifier(identifier) = &self.peek_token {
-            identifier_expression =
-                Expression::Identifier(Token::Identifier(identifier.to_string()));
+            identifier_expression = Expression::Identifier(identifier.to_string());
         } else {
             return Err(ParserError(String::from("Expected identifier after `let`")));
         }
 
         self.next_token();
 
-        if !self.check_next_token(Token::Assign) {
-            return Err(ParserError(format!(
-                "Expected \"{}\" here.",
-                Token::Assign.token_value()
-            )));
+        if self.check_next_token(Token::Assign).is_ok() {
+            self.next_token();
         }
-
-        self.next_token();
 
         if let Ok(value) = self.parse_expression() {
             Ok(Statement::Let(Token::Let, identifier_expression, value))
@@ -89,16 +89,20 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn parse_return_statement(&mut self) -> Result<Statement, ParserError> {
+        self.next_token();
+        if let Ok(expression) = self.parse_expression() {
+            Ok(Statement::Return(Token::Return, expression))
+        } else {
+            Err(ParserError(String::from(
+                "Could not parse return statement value.",
+            )))
+        }
+    }
+
     fn parse_expression(&mut self) -> Result<Expression, ParserError> {
         while !self.check_current_token(Token::Semicolon) {
             self.next_token();
-
-            if let Token::EOF = self.current_token {
-                return Err(ParserError(format!(
-                    "Expected \"{}\" here.",
-                    Token::Semicolon.token_value()
-                )));
-            }
         }
         Ok(Expression::Unit)
     }
@@ -107,8 +111,23 @@ impl<'a> Parser<'a> {
         self.current_token == token
     }
 
-    fn check_next_token(&self, token: Token) -> bool {
-        token == self.peek_token
+    fn check_next_token(&mut self, token: Token) -> Result<(), ParserError> {
+        if self.peek_token == token {
+            return Ok(());
+        } else {
+            let error_string = format!(
+                "Expected \"{}\" here, got \"{}\" instead.",
+                Token::Assign.token_value(),
+                self.peek_token.token_value()
+            );
+            // I don't like this side effect...
+            self.errors.push(error_string.to_string());
+            Err(ParserError(error_string))
+        }
+    }
+
+    pub fn get_errors(&self) -> &Vec<String> {
+        &self.errors
     }
 }
 

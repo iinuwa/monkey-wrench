@@ -7,19 +7,21 @@ pub trait Node {
 #[derive(Debug)]
 pub enum Statement {
     Let(Token, Expression, Expression),
+    Return(Token, Expression),
 }
 
 impl Node for Statement {
     fn literal_value(&self) -> String {
         match self {
             Statement::Let(token, _, _) => token.token_value(),
+            Statement::Return(token, _) => token.token_value(),
         }
     }
 }
 
 #[derive(Debug)]
 pub enum Expression {
-    Identifier(Token),
+    Identifier(String),
     r#String(String),
     Unit,
 }
@@ -27,7 +29,7 @@ pub enum Expression {
 impl Node for Expression {
     fn literal_value(&self) -> String {
         match self {
-            Expression::Identifier(token) => token.token_value(),
+            Expression::Identifier(identifier) => identifier.to_string(),
             Expression::String(string) => string.to_string(),
             Expression::Unit => "".to_string(),
         }
