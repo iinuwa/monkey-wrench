@@ -1,4 +1,6 @@
+mod tests;
 use crate::token::Token;
+use std::fmt;
 
 pub trait Node {
     fn literal_value(&self) -> String;
@@ -8,6 +10,23 @@ pub trait Node {
 pub enum Statement {
     Let(Token, Expression, Expression),
     Return(Token, Expression),
+}
+
+impl fmt::Display for Statement {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Statement::Let(token, identifier, value) => write!(
+                f,
+                "{} {} = {};",
+                token.token_value(),
+                identifier.to_string(),
+                value.to_string()
+            ),
+            Statement::Return(token, expression) => {
+                write!(f, "{} {};", token.token_value(), expression.to_string())
+            }
+        }
+    }
 }
 
 impl Node for Statement {
@@ -24,6 +43,16 @@ pub enum Expression {
     Identifier(String),
     r#String(String),
     Unit,
+}
+
+impl fmt::Display for Expression {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Expression::Identifier(string) => write!(f, "{}", string),
+            Expression::String(string) => write!(f, "{}", string),
+            Expression::Unit => write!(f, "()"),
+        }
+    }
 }
 
 impl Node for Expression {
@@ -56,34 +85,13 @@ impl Node for Program {
     }
 }
 
-/*
-pub struct LetStatement {
-    token: Token,
-    name: Identifier,
-    value: Box<dyn Expression>,
-}
-
-impl Statement for LetStatement {
-    fn statement(&self) {}
-}
-
-impl Node for LetStatement {
-    fn literal_value(&self) -> String {
-        self.token.token_value()
+impl fmt::Display for Program {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut out = String::new();
+        for statement in &self.statements {
+            out.push_str(&statement.to_string());
+            //statement.to_string()
+        }
+        write!(f, "{}", out)
     }
 }
-
-#[derive(Debug)]
-pub struct Identifier {
-    pub token: Token,
-}
-
-impl Node for Identifier {
-    fn literal_value(&self) -> String {
-        self.token.token_value()
-    }
-}
-impl Expression for Identifier {
-    fn expression(&self) {}
-}
-*/
