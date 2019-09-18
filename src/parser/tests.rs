@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::ast::{Node, Statement};
+use crate::ast::{Node, Statement, Expression};
 #[cfg(test)]
 use crate::lexer::Lexer;
 #[cfg(test)]
@@ -96,4 +96,25 @@ fn test_return_statements() {
             };
         }
     }
+}
+
+#[test]
+fn test_identifier_statements() {
+    let input = "foobar;";
+    let lexer = Lexer::new(input.as_bytes());
+    let mut parser = Parser::new(lexer);
+    let program = parser.parse_program().unwrap();
+    println!("{}", program);
+    check_parser_errors(parser);
+    assert_eq!(1, program.statements.len(), "Expected one statement, got {}", program.statements.len());
+    if let Statement::Expression(token, expression) = &program.statements[0] {
+        assert_eq!("foobar", token.token_value());
+        match expression {
+            Expression::Identifier(string) => assert_eq!("foobar", string),
+            _ => panic!("Expected Identifier expression, received {:?}", expression),
+        }
+    } else {
+        panic!("Unexpected statement type. Expected expression statement.");
+    }
+
 }

@@ -59,10 +59,7 @@ impl<'a> Parser<'a> {
         match self.current_token {
             Token::Let => self.parse_let_statement(),
             Token::Return => self.parse_return_statement(),
-            _ => Err(ParserError(format!(
-                "Unknown token encountered: {:?}",
-                self.current_token
-            ))),
+            _ => self.parse_expression_statement(),
         }
     }
 
@@ -100,7 +97,15 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_expression(&mut self) -> Result<Expression, ParserError> {
+    fn parse_expression_statement(&mut self) -> Result<Statement, ParserError> {
+        let token = self.current_token.clone();
+        if let Ok(expression) = self.parse_expression(Precedence::Lowest) {
+            return Ok(Statement::Expression(token, expression));
+        }
+        Err(ParserError("Could not parse expression".to_string()))
+    }
+
+    fn parse_expression(&mut self, precedence: Precedence) -> Result<Expression, ParserError> {
         while !self.check_current_token(Token::Semicolon) {
             self.next_token();
         }
@@ -145,4 +150,14 @@ impl fmt::Display for ParserError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "Error parsing source")
     }
+}
+
+enum Precedence {
+    Lowest = 0,
+    Equals = 10,
+    LessGreater = 20,
+    Sum = 30,
+    Product = 40,
+    Prefix = 50,
+    Call = 60,
 }

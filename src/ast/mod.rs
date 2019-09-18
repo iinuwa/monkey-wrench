@@ -10,6 +10,7 @@ pub trait Node {
 pub enum Statement {
     Let(Token, Expression, Expression),
     Return(Token, Expression),
+    Expression(Token, Expression),
 }
 
 impl fmt::Display for Statement {
@@ -24,7 +25,8 @@ impl fmt::Display for Statement {
             ),
             Statement::Return(token, expression) => {
                 write!(f, "{} {};", token.token_value(), expression.to_string())
-            }
+            },
+            Statement::Expression(_, expression) => write!(f, "{};", expression.to_string()),
         }
     }
 }
@@ -34,6 +36,7 @@ impl Node for Statement {
         match self {
             Statement::Let(token, _, _) => token.token_value(),
             Statement::Return(token, _) => token.token_value(),
+            Statement::Expression(token, _) => token.token_value(),
         }
     }
 }
