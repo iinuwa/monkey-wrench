@@ -25,7 +25,7 @@ impl fmt::Display for Statement {
             ),
             Statement::Return(token, expression) => {
                 write!(f, "{} {};", token.token_value(), expression.to_string())
-            },
+            }
             Statement::Expression(_, expression) => write!(f, "{};", expression.to_string()),
         }
     }
@@ -45,6 +45,7 @@ impl Node for Statement {
 pub enum Expression {
     Identifier(String),
     r#String(String),
+    Integer(usize),
     Unit,
 }
 
@@ -53,6 +54,7 @@ impl fmt::Display for Expression {
         match self {
             Expression::Identifier(string) => write!(f, "{}", string),
             Expression::String(string) => write!(f, "{}", string),
+            Expression::Integer(value) => write!(f, "{}", value),
             Expression::Unit => write!(f, "()"),
         }
     }
@@ -63,6 +65,7 @@ impl Node for Expression {
         match self {
             Expression::Identifier(identifier) => identifier.to_string(),
             Expression::String(string) => string.to_string(),
+            Expression::Integer(value) => value.to_string(),
             Expression::Unit => "".to_string(),
         }
     }

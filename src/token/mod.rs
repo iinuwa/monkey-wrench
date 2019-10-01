@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub enum Token {
     Illegal(String),
     EOF,
@@ -96,4 +96,47 @@ impl Token {
             Token::Return => "return".to_string(),
         }
     }
+
+    /*
+    pub fn token_typ(&self) -> String {
+        match self {
+            Token::Illegal(_) => "Illegal".to_string(),
+            Token::EOF => "EOF".to_string(),
+
+            // Identifiers + literals
+            Token::Identifier(_) => "Identifier".to_string(),
+            Token::Integer(_) => "Integer".to_string(),
+
+            // Operators
+            Token::Assign => "Assign".to_string(),
+            Token::Plus => "Plus".to_string(),
+            Token::Minus => "Minus".to_string(),
+            Token::Bang => "Bang".to_string(),
+            Token::Asterisk => "Asterisk".to_string(),
+            Token::Slash => "/".to_string(),
+
+            Token::Less => "<".to_string(),
+            Token::Greater => ">".to_string(),
+            Token::Equal => "==".to_string(),
+            Token::NotEqual => "!=".to_string(),
+
+            // Delimiters
+            Token::LeftParen => "(".to_string(),
+            Token::RightParen => ")".to_string(),
+            Token::LeftBrace => "{".to_string(),
+            Token::RightBrace => "}".to_string(),
+            Token::Comma => ",".to_string(),
+            Token::Semicolon => ";".to_string(),
+
+            // Keywords
+            Token::Let => "let".to_string(),
+            Token::Function => "fn".to_string(),
+            Token::True => "true".to_string(),
+            Token::False => "false".to_string(),
+            Token::If => "if".to_string(),
+            Token::Else => "else".to_string(),
+            Token::Return => "return".to_string(),
+        }
+    }
+    */
 }
