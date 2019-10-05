@@ -74,9 +74,14 @@ impl<'a> Parser<'a> {
 
         self.next_token();
 
-        if self.check_next_token(Token::Assign).is_ok() {
-            self.next_token();
+        match self.check_next_token(Token::Assign) {
+            Ok(_) => {
+                self.next_token();
+            }
+            Err(err) => return Err(err),
         }
+
+        self.next_token();
 
         if let Ok(value) = self.parse_expression(Precedence::Lowest) {
             Ok(Statement::Let(Token::Let, identifier_expression, value))
@@ -100,26 +105,28 @@ impl<'a> Parser<'a> {
 
     fn parse_expression_statement(&mut self) -> ParseResult<Statement> {
         let token = self.current_token.clone();
-        if let Ok(expression) = self.parse_expression(Precedence::Lowest) {
-            if self.peek_token == Token::Semicolon {
-                self.next_token();
-            }
-
-            return Ok(Statement::Expression(token, expression));
+        match self.parse_expression(Precedence::Lowest) {
+            Ok(expression) => Ok(Statement::Expression(token, expression)),
+            Err(err) => Err(err),
         }
-
-        Err(ParserError("Could not parse expression".to_string()))
     }
 
     fn parse_expression(&mut self, _precedence: Precedence) -> ParseResult<Expression> {
-        println!("{}", self.current_token.token_value());
         if let Some(parse_fn) = Self::get_prefix_parse_functions(&self.current_token) {
-            return Ok(parse_fn(&self));
+            let expression = Ok(parse_fn(self));
+            if self.peek_token == Token::Semicolon {
+                self.next_token();
+            }
+            return expression;
         }
 
-        Err(ParserError("Could not parse prefix expression".to_string()))
+        Err(ParserError(format!(
+            "No prefix expression found for token: {}",
+            self.current_token.token_value()
+        )))
     }
 
+    #[allow(dead_code)]
     fn check_current_token(&self, token: Token) -> bool {
         self.current_token == token
     }
@@ -139,19 +146,11 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn get_errors(&self) -> &Vec<String> {
-        &self.errors
-    }
-
-    fn parse_identifier(parser: &Parser) -> Expression {
+    fn parse_identifier(parser: &mut Parser) -> Expression {
         Expression::Identifier(parser.current_token.token_value())
     }
 
-    fn unit(_parser: &Parser) -> Expression {
-        Expression::Unit
-    }
-
-    fn parse_integer(parser: &Parser) -> Expression {
+    fn parse_integer(parser: &mut Parser) -> Expression {
         if let Token::Integer(value) = parser.current_token {
             Expression::Integer(value)
         } else {
@@ -159,12 +158,34 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn parse_prefix_expression(parser: &mut Parser) -> Expression {
+        let operator: String;
+        match parser.current_token {
+            Token::Bang => operator = parser.current_token.token_value(),
+            Token::Minus => operator = parser.current_token.token_value(),
+            _ => panic!(
+                "Token `{}` is not a prefix operator",
+                parser.current_token.token_value()
+            ),
+        }
+        parser.next_token();
+
+        let expression = parser.parse_expression(Precedence::Prefix).unwrap();
+        Expression::Prefix(operator, Box::new(expression))
+    }
+
     fn get_prefix_parse_functions(token: &Token) -> Option<&'a PrefixParseFn> {
         match token {
             Token::Identifier(_) => Some(&Parser::parse_identifier),
             Token::Integer(_) => Some(&Parser::parse_integer),
-            _ => Some(&Parser::unit),
+            Token::Bang | Token::Minus => Some(&Parser::parse_prefix_expression),
+            _ => None,
         }
+    }
+
+    #[cfg(test)]
+    pub fn get_errors(&self) -> &Vec<String> {
+        &self.errors
     }
 }
 
@@ -194,7 +215,7 @@ enum Precedence {
     Call = 60,
 }
 
-type PrefixParseFn = dyn Fn(&Parser) -> Expression;
+type PrefixParseFn = dyn Fn(&mut Parser) -> Expression;
 type InfixParseFn = dyn Fn(Parser, Expression) -> Expression;
 
 type ParseResult<T> = Result<T, ParserError>;

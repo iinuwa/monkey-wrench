@@ -46,7 +46,7 @@ pub enum Expression {
     Identifier(String),
     r#String(String),
     Integer(usize),
-    Unit,
+    Prefix(String, Box<Expression>),
 }
 
 impl fmt::Display for Expression {
@@ -55,7 +55,7 @@ impl fmt::Display for Expression {
             Expression::Identifier(string) => write!(f, "{}", string),
             Expression::String(string) => write!(f, "{}", string),
             Expression::Integer(value) => write!(f, "{}", value),
-            Expression::Unit => write!(f, "()"),
+            Expression::Prefix(operator, expression) => write!(f, "({}{})", operator, *expression),
         }
     }
 }
@@ -66,7 +66,7 @@ impl Node for Expression {
             Expression::Identifier(identifier) => identifier.to_string(),
             Expression::String(string) => string.to_string(),
             Expression::Integer(value) => value.to_string(),
-            Expression::Unit => "".to_string(),
+            Expression::Prefix(operator, expression) => format!("({}{})", operator, *expression),
         }
     }
 }
