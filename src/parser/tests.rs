@@ -147,22 +147,23 @@ fn test_integer_literal_expression() {
 
 #[test]
 fn test_parse_prefix_operators() {
-    struct PrefixTests {
+    struct PrefixTest {
         input: String,
         operator: String,
         int_value: usize,
     }
-    let mut prefix_tests = Vec::new();
-    prefix_tests.push(PrefixTests {
-        input: "!5;".to_owned(),
-        operator: "!".to_owned(),
-        int_value: 5,
-    });
-    prefix_tests.push(PrefixTests {
-        input: "-15;".to_owned(),
-        operator: "-".to_owned(),
-        int_value: 15,
-    });
+    let prefix_tests = vec![
+        PrefixTest {
+            input: "!5;".to_owned(),
+            operator: "!".to_owned(),
+            int_value: 5,
+        },
+        PrefixTest {
+            input: "-15;".to_owned(),
+            operator: "-".to_owned(),
+            int_value: 15,
+        },
+    ];
 
     for test in prefix_tests {
         let lexer = Lexer::new(test.input.as_bytes());
@@ -182,10 +183,7 @@ fn test_parse_prefix_operators() {
                 match e {
                     Expression::Prefix(operator, right) => {
                         assert_eq!(&test.operator, operator);
-                        match &**right {
-                            Expression::Integer(integer) => assert_eq!(test.int_value, *integer),
-                            x => panic!("Expected integer expression, received {:?}", x),
-                        }
+                        check_integer_expression(&**right, test.int_value);
                     }
                     x => panic!("Expected prefix expression, received {:?}", x),
                 };
@@ -193,4 +191,100 @@ fn test_parse_prefix_operators() {
             x => panic!("Expected expression statement, received {:?}", x),
         }
     }
+}
+
+#[test]
+fn test_parse_infix_operators() {
+    struct InfixTest {
+        input: String,
+        left_value: usize,
+        operator: String,
+        right_value: usize,
+    }
+    let infix_tests = vec![
+        InfixTest {
+            input: "5 + 5;".to_owned(),
+            left_value: 5,
+            operator: "+".to_owned(),
+            right_value: 5,
+        },
+        InfixTest {
+            input: "5 - 5;".to_owned(),
+            left_value: 5,
+            operator: "-".to_owned(),
+            right_value: 5,
+        },
+        InfixTest {
+            input: "5 * 5;".to_owned(),
+            left_value: 5,
+            operator: "*".to_owned(),
+            right_value: 5,
+        },
+        InfixTest {
+            input: "5 / 5;".to_owned(),
+            left_value: 5,
+            operator: "/".to_owned(),
+            right_value: 5,
+        },
+        InfixTest {
+            input: "5 > 5;".to_owned(),
+            left_value: 5,
+            operator: ">".to_owned(),
+            right_value: 5,
+        },
+        InfixTest {
+            input: "5 < 5;".to_owned(),
+            left_value: 5,
+            operator: "<".to_owned(),
+            right_value: 5,
+        },
+        InfixTest {
+            input: "5 == 5;".to_owned(),
+            left_value: 5,
+            operator: "==".to_owned(),
+            right_value: 5,
+        },
+        InfixTest {
+            input: "5 != 5;".to_owned(),
+            left_value: 5,
+            operator: "!=".to_owned(),
+            right_value: 5,
+        },
+    ];
+
+    for test in infix_tests {
+        let lexer = Lexer::new(test.input.as_bytes());
+        let mut parser = Parser::new(lexer);
+        let program_result = parser.parse_program();
+        check_parser_errors(parser);
+        let program = program_result.unwrap();
+        assert_eq!(
+            1,
+            program.statements.len(),
+            "Expected 1 statement in program, received {}",
+            program.statements.len()
+        );
+        match program.statements.first().unwrap() {
+            Statement::Expression(_, e) => {
+                println!("{}", e);
+                match e {
+                    Expression::Infix(left, operator, right) => {
+                        check_integer_expression(&**left, test.left_value);
+                        assert_eq!(&test.operator, operator);
+                        check_integer_expression(&**right, test.right_value);
+                    }
+                    x => panic!("Expected infix expression, received {:?}", x),
+                };
+            }
+            x => panic!("Expected expression statement, received {:?}", x),
+        }
+    }
+}
+
+#[cfg(test)]
+fn check_integer_expression(expression: &Expression, test_value: usize) {
+    if let Expression::Integer(integer) = expression {
+        assert_eq!(test_value, *integer);
+    }
+    panic!("Expected integer expression, received {:?}", expression);
 }

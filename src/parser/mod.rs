@@ -111,13 +111,28 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_expression(&mut self, _precedence: Precedence) -> ParseResult<Expression> {
-        if let Some(parse_fn) = Self::get_prefix_parse_functions(&self.current_token) {
-            let expression = Ok(parse_fn(self));
-            if self.peek_token == Token::Semicolon {
-                self.next_token();
+    fn parse_expression(&mut self, precedence: Precedence) -> ParseResult<Expression> {
+        match precedence {
+            Precedence::Lowest => {
+                if let Some(prefix_parse_fn) = Self::get_prefix_parse_function(&self.current_token)
+                {
+                    let expression = prefix_parse_fn(self);
+                    if self.peek_token == Token::Semicolon {
+                        self.next_token();
+                    }
+                    return Ok(expression);
+                }
             }
-            return expression;
+            Precedence::Product | Precedence::Sum | Precedence::LessGreater => {
+                if let Some(infix_parse_fn) = Self::get_infix_parse_function(&self.peek_token) {
+                    let expression = infix_parse_fn(self, Expression::Unit);
+                    if self.peek_token == Token::Semicolon {
+                        self.next_token();
+                    }
+                    return Ok(expression);
+                }
+            }
+            _ => return Err(ParserError("failed to parse expression".to_string())),
         }
 
         Err(ParserError(format!(
@@ -158,11 +173,18 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn parse_arithmetic(parser: &mut Parser, expression: Expression) -> Expression {
+        unimplemented!();
+    }
+
+    fn parse_compare(parser: &mut Parser, expression: Expression) -> Expression {
+        unimplemented!();
+    }
+
     fn parse_prefix_expression(parser: &mut Parser) -> Expression {
         let operator: String;
         match parser.current_token {
-            Token::Bang => operator = parser.current_token.token_value(),
-            Token::Minus => operator = parser.current_token.token_value(),
+            Token::Bang | Token::Minus => operator = parser.current_token.token_value(),
             _ => panic!(
                 "Token `{}` is not a prefix operator",
                 parser.current_token.token_value()
@@ -174,11 +196,23 @@ impl<'a> Parser<'a> {
         Expression::Prefix(operator, Box::new(expression))
     }
 
-    fn get_prefix_parse_functions(token: &Token) -> Option<&'a PrefixParseFn> {
+    fn get_prefix_parse_function(token: &Token) -> Option<&'a PrefixParseFn> {
         match token {
             Token::Identifier(_) => Some(&Parser::parse_identifier),
             Token::Integer(_) => Some(&Parser::parse_integer),
             Token::Bang | Token::Minus => Some(&Parser::parse_prefix_expression),
+            _ => None,
+        }
+    }
+
+    fn get_infix_parse_function(token: &Token) -> Option<&'a InfixParseFn> {
+        match token {
+            Token::Plus | Token::Minus | Token::Asterisk | Token::Slash => {
+                Some(&Parser::parse_arithmetic)
+            }
+            Token::Greater | Token::Less | Token::Equal | Token::NotEqual => {
+                Some(&Parser::parse_compare)
+            }
             _ => None,
         }
     }
@@ -216,6 +250,6 @@ enum Precedence {
 }
 
 type PrefixParseFn = dyn Fn(&mut Parser) -> Expression;
-type InfixParseFn = dyn Fn(Parser, Expression) -> Expression;
+type InfixParseFn = dyn Fn(&mut Parser, Expression) -> Expression;
 
 type ParseResult<T> = Result<T, ParserError>;
