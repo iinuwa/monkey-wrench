@@ -260,7 +260,7 @@ fn test_parse_infix_operators() {
         let program_result = parser.parse_program();
         check_parser_errors(parser);
         let program = program_result.unwrap();
-        println!("{:?}", program.statements);
+        //println!("{:?}", program.statements);
         assert_eq!(
             1,
             program.statements.len(),

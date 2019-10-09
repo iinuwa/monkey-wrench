@@ -124,15 +124,13 @@ impl<'a> Parser<'a> {
                 break;
             }
 
-            println!("{:?}", self.current_token);
             let next_token_precedence = Self::get_token_precedence(&self.current_token);
-            println!("{:?}, next: {:?}", precedence, next_token_precedence);
             if precedence >= next_token_precedence {
                 break;
             }
 
             if let Some(infix_parse_fn) = Self::get_infix_parse_function(&self.current_token) {
-                left_expression = infix_parse_fn(self, &left_expression);
+                left_expression = infix_parse_fn(self, left_expression);
             } else {
                 return Ok(left_expression);
             }
@@ -173,29 +171,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_arithmetic(parser: &mut Parser, left: &Expression) -> Expression {
-        match parser.current_token {
-            Token::Plus => {
-                if let Expression::Integer(left_integer) = left {
-                    let right_expression = parser.parse_expression(Precedence::Sum).unwrap();
-                    if let Expression::Integer(right_integer) = right_expression {
-                        Expression::Integer(left_integer + right_integer)
-                    }
-                    else {
-                        panic!();
-                    }
-                } else {
-                    panic!();
-                }
-            },
-            _ => Expression::Unit,
-        }
-    }
-
-    fn parse_compare(_parser: &mut Parser, _left_expression: &Expression) -> Expression {
-        unimplemented!();
-    }
-
     fn parse_prefix_expression(parser: &mut Parser) -> Expression {
         let operator: String;
         match parser.current_token {
@@ -232,6 +207,8 @@ impl<'a> Parser<'a> {
     }
 
     fn get_infix_parse_function(token: &Token) -> Option<&'a InfixParseFn> {
+        Some(&Parser::parse_infix_expression)
+        /*
         match token {
             Token::Plus | Token::Minus | Token::Asterisk | Token::Slash => {
                 Some(&Parser::parse_arithmetic)
@@ -241,6 +218,7 @@ impl<'a> Parser<'a> {
             }
             _ => None,
         }
+        */
     }
 
     #[cfg(test)]
@@ -287,6 +265,6 @@ enum Precedence {
 }
 
 type PrefixParseFn = dyn Fn(&mut Parser) -> Expression;
-type InfixParseFn = dyn Fn(&mut Parser, &Expression) -> Expression;
+type InfixParseFn = dyn Fn(&mut Parser, Expression) -> Expression;
 
 type ParseResult<T> = Result<T, ParserError>;
