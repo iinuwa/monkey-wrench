@@ -171,6 +171,7 @@ fn test_parse_prefix_operators() {
         let program_result = parser.parse_program();
         check_parser_errors(parser);
         let program = program_result.unwrap();
+        //println!("{:?}", program.statements);
         assert_eq!(
             1,
             program.statements.len(),
@@ -183,6 +184,7 @@ fn test_parse_prefix_operators() {
                 match e {
                     Expression::Prefix(operator, right) => {
                         assert_eq!(&test.operator, operator);
+                        println!("{:?}", right);
                         check_integer_expression(&**right, test.int_value);
                     }
                     x => panic!("Expected prefix expression, received {:?}", x),
@@ -258,6 +260,7 @@ fn test_parse_infix_operators() {
         let program_result = parser.parse_program();
         check_parser_errors(parser);
         let program = program_result.unwrap();
+        println!("{:?}", program.statements);
         assert_eq!(
             1,
             program.statements.len(),
@@ -283,8 +286,8 @@ fn test_parse_infix_operators() {
 
 #[cfg(test)]
 fn check_integer_expression(expression: &Expression, test_value: usize) {
-    if let Expression::Integer(integer) = expression {
-        assert_eq!(test_value, *integer);
+    match *expression {
+        Expression::Integer(integer) => assert_eq!(test_value, integer),
+        _ => panic!("Expected integer expression, received {:?}", expression),
     }
-    panic!("Expected integer expression, received {:?}", expression);
 }

@@ -112,33 +112,33 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> ParseResult<Expression> {
-        match precedence {
-            Precedence::Lowest => {
-                if let Some(prefix_parse_fn) = Self::get_prefix_parse_function(&self.current_token)
-                {
-                    let expression = prefix_parse_fn(self);
-                    if self.peek_token == Token::Semicolon {
-                        self.next_token();
-                    }
-                    return Ok(expression);
-                }
-            }
-            Precedence::Product | Precedence::Sum | Precedence::LessGreater => {
-                if let Some(infix_parse_fn) = Self::get_infix_parse_function(&self.peek_token) {
-                    let expression = infix_parse_fn(self, Expression::Unit);
-                    if self.peek_token == Token::Semicolon {
-                        self.next_token();
-                    }
-                    return Ok(expression);
-                }
-            }
-            _ => return Err(ParserError("failed to parse expression".to_string())),
+        let mut left_expression: Expression;
+        if let Some(prefix_parse_fn) = Self::get_prefix_parse_function(&self.current_token) {
+            left_expression = prefix_parse_fn(self);
+        } else {
+            return Ok(Expression::Unit);
         }
+        self.next_token();
+        loop {
+            if let Token::Semicolon = self.peek_token {
+                break;
+            }
 
-        Err(ParserError(format!(
-            "No prefix expression found for token: {}",
-            self.current_token.token_value()
-        )))
+            println!("{:?}", self.current_token);
+            let next_token_precedence = Self::get_token_precedence(&self.current_token);
+            println!("{:?}, next: {:?}", precedence, next_token_precedence);
+            if precedence >= next_token_precedence {
+                break;
+            }
+
+            if let Some(infix_parse_fn) = Self::get_infix_parse_function(&self.current_token) {
+                left_expression = infix_parse_fn(self, &left_expression);
+            } else {
+                return Ok(left_expression);
+            }
+        }
+        Ok(left_expression)
+
     }
 
     #[allow(dead_code)]
@@ -148,7 +148,7 @@ impl<'a> Parser<'a> {
 
     fn check_next_token(&mut self, token: Token) -> ParseResult<()> {
         if self.peek_token == token {
-            return Ok(());
+            Ok(())
         } else {
             let error_string = format!(
                 "Expected \"{}\" here, got \"{}\" instead.",
@@ -173,11 +173,26 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_arithmetic(parser: &mut Parser, expression: Expression) -> Expression {
-        unimplemented!();
+    fn parse_arithmetic(parser: &mut Parser, left: &Expression) -> Expression {
+        match parser.current_token {
+            Token::Plus => {
+                if let Expression::Integer(left_integer) = left {
+                    let right_expression = parser.parse_expression(Precedence::Sum).unwrap();
+                    if let Expression::Integer(right_integer) = right_expression {
+                        Expression::Integer(left_integer + right_integer)
+                    }
+                    else {
+                        panic!();
+                    }
+                } else {
+                    panic!();
+                }
+            },
+            _ => Expression::Unit,
+        }
     }
 
-    fn parse_compare(parser: &mut Parser, expression: Expression) -> Expression {
+    fn parse_compare(_parser: &mut Parser, _left_expression: &Expression) -> Expression {
         unimplemented!();
     }
 
@@ -194,6 +209,17 @@ impl<'a> Parser<'a> {
 
         let expression = parser.parse_expression(Precedence::Prefix).unwrap();
         Expression::Prefix(operator, Box::new(expression))
+    }
+
+    fn parse_infix_expression(parser: &mut Parser, left_expression: Expression) -> Expression {
+        let first_expression_token = &parser.current_token.clone();
+        let precedence = Self::get_token_precedence(&first_expression_token);
+        parser.next_token();
+        if let Ok(right_expression) = parser.parse_expression(precedence) {
+            Expression::Infix(Box::new(left_expression), first_expression_token.token_value(), Box::new(right_expression))
+        } else {
+            panic!("Something went wrong parsing infix expression");
+        }
     }
 
     fn get_prefix_parse_function(token: &Token) -> Option<&'a PrefixParseFn> {
@@ -221,6 +247,16 @@ impl<'a> Parser<'a> {
     pub fn get_errors(&self) -> &Vec<String> {
         &self.errors
     }
+
+    fn get_token_precedence(token: &Token) -> Precedence {
+        match token {
+            Token::Equal | Token::NotEqual => Precedence::Equals,
+            Token::Less | Token::Greater => Precedence::LessGreater,
+            Token::Plus | Token::Minus => Precedence::Sum,
+            Token::Asterisk | Token::Slash => Precedence::Product,
+            _ => Precedence::Lowest,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -239,6 +275,7 @@ impl fmt::Display for ParserError {
     }
 }
 
+#[derive(Debug, PartialOrd, PartialEq)]
 enum Precedence {
     Lowest = 0,
     Equals = 10,
@@ -250,6 +287,6 @@ enum Precedence {
 }
 
 type PrefixParseFn = dyn Fn(&mut Parser) -> Expression;
-type InfixParseFn = dyn Fn(&mut Parser, Expression) -> Expression;
+type InfixParseFn = dyn Fn(&mut Parser, &Expression) -> Expression;
 
 type ParseResult<T> = Result<T, ParserError>;
