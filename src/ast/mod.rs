@@ -26,7 +26,7 @@ impl fmt::Display for Statement {
             Statement::Return(token, expression) => {
                 write!(f, "{} {};", token.token_value(), expression.to_string())
             }
-            Statement::Expression(_, expression) => write!(f, "{};", expression.to_string()),
+            Statement::Expression(_, expression) => write!(f, "{}", expression.to_string()),
         }
     }
 }
@@ -106,7 +106,6 @@ impl fmt::Display for Program {
         let mut out = String::new();
         for statement in &self.statements {
             out.push_str(&statement.to_string());
-            //statement.to_string()
         }
         write!(f, "{}", out)
     }

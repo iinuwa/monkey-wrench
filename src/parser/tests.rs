@@ -16,7 +16,6 @@ fn test_let_statements() {
     let lexer = Lexer::new(input.as_bytes());
     let mut parser = Parser::new(lexer);
     let parse_result = parser.parse_program();
-    //println!("{:?}", parse_result);
     assert!(parse_result.is_ok());
     if let Ok(program) = parse_result {
         assert!(
@@ -43,7 +42,6 @@ fn test_let_errors() {
     let mut parser = Parser::new(lexer);
     let parse_result = parser.parse_program();
     assert!(parse_result.is_err());
-    //println!("{:?}", parse_result);
     check_parser_errors(parser);
 }
 
@@ -80,7 +78,6 @@ fn test_return_statements() {
     let mut parser = Parser::new(lexer);
     let parse_result = parser.parse_program();
     assert!(parse_result.is_ok());
-    //println!("{:?}", parse_result);
     if let Ok(program) = parse_result {
         assert!(
             program.statements.len() == 3,
@@ -104,7 +101,6 @@ fn test_identifier_statements() {
     let lexer = Lexer::new(input.as_bytes());
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program().unwrap();
-    //println!("{}", program);
     check_parser_errors(parser);
     assert_eq!(
         1,
@@ -171,7 +167,6 @@ fn test_parse_prefix_operators() {
         let program_result = parser.parse_program();
         check_parser_errors(parser);
         let program = program_result.unwrap();
-        //println!("{:?}", program.statements);
         assert_eq!(
             1,
             program.statements.len(),
@@ -260,7 +255,7 @@ fn test_parse_infix_operators() {
         let program_result = parser.parse_program();
         check_parser_errors(parser);
         let program = program_result.unwrap();
-        //println!("{:?}", program.statements);
+        println!("{:?}", program.statements);
         assert_eq!(
             1,
             program.statements.len(),
@@ -281,6 +276,32 @@ fn test_parse_infix_operators() {
             }
             x => panic!("Expected expression statement, received {:?}", x),
         }
+    }
+}
+
+#[test]
+fn test_operator_precedence_parsing() {
+    let tests = vec![
+        ( "-a * b", "((-a) * b)", ),
+        ( "!-a", "(!(-a))",),
+        ( "a + b + c", "((a + b) + c)",),
+        ( "a + b - c", "((a + b) - c)",),
+        ( "a * b * c", "((a * b) * c)",),
+        ( "a * b / c", "((a * b) / c)",),
+        ( "a + b / c", "(a + (b / c))",),
+        ( "a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)",),
+        ( "3 + 4; -5 * 5", "(3 + 4)((-5) * 5)",),
+        ( "5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))",),
+        ( "5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))",),
+        ( "3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",),
+    ];
+    for test in tests {
+        let lexer = Lexer::new(test.0.as_bytes());
+        let mut parser = Parser::new(lexer);
+        let program_result = parser.parse_program();
+        check_parser_errors(parser);
+        let program = program_result.unwrap();
+        assert_eq!(test.1, program.to_string());
     }
 }
 

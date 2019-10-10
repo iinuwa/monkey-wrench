@@ -57,11 +57,15 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_statement(&mut self) -> ParseResult<Statement> {
-        match self.current_token {
+        let statement = match self.current_token {
             Token::Let => self.parse_let_statement(),
             Token::Return => self.parse_return_statement(),
             _ => self.parse_expression_statement(),
+        };
+        if self.check_next_token(Token::Semicolon).is_ok() {
+            self.next_token();
         }
+        return statement;
     }
 
     fn parse_let_statement(&mut self) -> Result<Statement, ParserError> {
@@ -77,8 +81,12 @@ impl<'a> Parser<'a> {
         match self.check_next_token(Token::Assign) {
             Ok(_) => {
                 self.next_token();
-            }
-            Err(err) => return Err(err),
+            },
+            Err(err) => {
+                // I don't like this side effect...
+                self.errors.push(err.to_string());
+                return Err(err);
+            },
         }
 
         self.next_token();
@@ -106,7 +114,15 @@ impl<'a> Parser<'a> {
     fn parse_expression_statement(&mut self) -> ParseResult<Statement> {
         let token = self.current_token.clone();
         match self.parse_expression(Precedence::Lowest) {
-            Ok(expression) => Ok(Statement::Expression(token, expression)),
+            Ok(expression) => {
+                /*
+                if self.check_next_token(Token::Semicolon).is_ok() {
+                    self.next_token();
+                }
+                */
+                Ok(Statement::Expression(token, expression))
+
+            },
             Err(err) => Err(err),
         }
     }
@@ -118,18 +134,19 @@ impl<'a> Parser<'a> {
         } else {
             return Ok(Expression::Unit);
         }
-        self.next_token();
+
         loop {
-            if let Token::Semicolon = self.peek_token {
+            if self.check_next_token(Token::Semicolon).is_ok() {
                 break;
             }
 
-            let next_token_precedence = Self::get_token_precedence(&self.current_token);
+            let next_token_precedence = Self::get_token_precedence(&self.peek_token);
             if precedence >= next_token_precedence {
                 break;
             }
 
             if let Some(infix_parse_fn) = Self::get_infix_parse_function(&self.current_token) {
+                self.next_token();
                 left_expression = infix_parse_fn(self, left_expression);
             } else {
                 return Ok(left_expression);
@@ -146,15 +163,13 @@ impl<'a> Parser<'a> {
 
     fn check_next_token(&mut self, token: Token) -> ParseResult<()> {
         if self.peek_token == token {
-            Ok(())
+            return Ok(())
         } else {
             let error_string = format!(
                 "Expected \"{}\" here, got \"{}\" instead.",
                 Token::Assign.token_value(),
                 self.peek_token.token_value()
             );
-            // I don't like this side effect...
-            self.errors.push(error_string.to_string());
             Err(ParserError(error_string))
         }
     }
@@ -191,7 +206,11 @@ impl<'a> Parser<'a> {
         let precedence = Self::get_token_precedence(&first_expression_token);
         parser.next_token();
         if let Ok(right_expression) = parser.parse_expression(precedence) {
-            Expression::Infix(Box::new(left_expression), first_expression_token.token_value(), Box::new(right_expression))
+            Expression::Infix(
+                Box::new(left_expression),
+                first_expression_token.token_value(),
+                Box::new(right_expression)
+            )
         } else {
             panic!("Something went wrong parsing infix expression");
         }
@@ -206,19 +225,8 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn get_infix_parse_function(token: &Token) -> Option<&'a InfixParseFn> {
+    fn get_infix_parse_function(_token: &Token) -> Option<&'a InfixParseFn> {
         Some(&Parser::parse_infix_expression)
-        /*
-        match token {
-            Token::Plus | Token::Minus | Token::Asterisk | Token::Slash => {
-                Some(&Parser::parse_arithmetic)
-            }
-            Token::Greater | Token::Less | Token::Equal | Token::NotEqual => {
-                Some(&Parser::parse_compare)
-            }
-            _ => None,
-        }
-        */
     }
 
     #[cfg(test)]
@@ -235,6 +243,7 @@ impl<'a> Parser<'a> {
             _ => Precedence::Lowest,
         }
     }
+
 }
 
 #[derive(Debug)]
